@@ -1,0 +1,12 @@
+<table class="table table-primary">
+  <thead>
+    <tr>
+      <th *ngFor="let item of csv.headers" scope="col">{{item}}</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let row of csv.body">
+      <td *ngFor="let item of csv.headers">{{row[item]}}</td>
+    </tr>
+  </tbody>
+</table>

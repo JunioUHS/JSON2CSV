@@ -5,17 +5,23 @@
       <div class="form-group col-md-5">
         <textarea class="form-control"
           [(ngModel)]="jsonTextArea"
-          [ngClass]="{'is-invalid': cssValidator(f.json)}"
+          [ngClass]="{'is-invalid': cssValidator(formControls.json)}"
           placeholder="Insira o JSON"
           formControlName="json"
           name="json"
-          rows="20">
+          rows="15">
         </textarea>
-        <div *ngIf="f.json.errors?.required" class="invalid-feedback">
+        <div *ngIf="formControls.json.errors?.required" class="invalid-feedback">
           O JSON é obrigatório.
         </div>
-        <div *ngIf="f.json.errors?.jsonInvalido" class="invalid-feedback">
+        <div *ngIf="formControls.json.errors?.jsonInvalido" class="invalid-feedback">
           O JSON informado é inválido.
+        </div>
+        <div *ngIf="formControls.json.errors?.multidimensionalArray" class="invalid-feedback">
+          O JSON informado precisa ser um array de objetos.
+        </div>
+        <div *ngIf="formControls.json.errors?.primitiveTypeError" class="invalid-feedback">
+          Os parametros do JSON precisam ser do tipo string, number ou boolean.
         </div>
       </div>
       <div class="col-md-2">
@@ -23,10 +29,15 @@
         <button class="form-control mt-2 mb-2 btn btn-secondary" (click)="resetForm()">Limpar</button>
       </div>
       <div class="form-group col-md-5">
-        <textarea class="form-control" [(ngModel)]="csvTextArea" formControlName="csv" name="csv" id="csv" rows="20" disable></textarea>
+        <textarea class="form-control" [(ngModel)]="csvTextArea" formControlName="csv" name="csv" id="csv" rows="15" disable></textarea>
       </div>
     </div>
   </form>
+  <div *ngIf="csvObj.headers.length > 0" class="row mt-4">
+    <div class="col-md-12">
+      <app-table-csv [csv]="csvObj"></app-table-csv>
+    </div>
+  </div>
 </main>
 
 <router-outlet />
