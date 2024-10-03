@@ -2,11 +2,13 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { TableCsvComponent } from "./table-csv/table-csv.component";
+import { Csv } from "./models/Csv";
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ReactiveFormsModule, CommonModule],
+  imports: [RouterOutlet, ReactiveFormsModule, CommonModule, TableCsvComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -16,8 +18,9 @@ export class AppComponent {
   form!: FormGroup;
   jsonTextArea: string = '';
   csvTextArea: string = '';
+  csvObj: Csv = { headers: [], body: [] };
 
-  get f(): any {
+  get formControls(): any {
     return this.form.controls;
   }
 
@@ -35,24 +38,30 @@ export class AppComponent {
 
       if (!this.validateForm()) return;
 
-      const arrayCsv: string[] = [];
-      const arrayJson = JSON.parse(this.jsonTextArea);
-      const headers = Object.keys(arrayJson[0]);
+      const arrayStringCsv: string[] = [];
+      const arrayObjJson = JSON.parse(this.jsonTextArea);
+      let headers: string[] = [];
 
-      arrayCsv.push(headers.join(','));
+      arrayObjJson.forEach((rowJson: any) => {
+        const keys = Object.keys(rowJson);
 
-      arrayJson.forEach((row: any) => {
+        headers = [...new Set([...headers, ...keys])];
+      });
+
+      arrayStringCsv.push(headers.join(','));
+      this.csvObj.headers = headers;
+      this.csvObj.body = arrayObjJson;
+
+      arrayObjJson.forEach((row: any) => {
         const rowCsv = headers.map(header => {
-          const aux = isNaN(row[header]) ? `"${row[header]}"` : row[header];
+          const aux: string = isNaN(row[header]) ? ( row[header] ? `"${row[header]}"` : '' ) : row[header];
           return aux;
         });
 
-        arrayCsv.push(rowCsv.join(','))
-        console.log(rowCsv);
-        console.log(arrayCsv);
+        arrayStringCsv.push(rowCsv.join(','));
       });
 
-      const csv = arrayCsv.join('\n');
+      const csv = arrayStringCsv.join('\n');
       this.csvTextArea = csv;
 
     } catch(error) {
@@ -65,27 +74,56 @@ export class AppComponent {
     this.form.markAllAsTouched();
 
     try {
+      let primitiveTypeError = false;
       const arrayJson = JSON.parse(this.jsonTextArea);
 
-      if(typeof arrayJson === 'object' && arrayJson !== null) {
-        return true;
+      if (!Array.isArray(arrayJson) || Array.isArray(arrayJson[0]) || arrayJson.length === 0) {
+        this.formControls.json.setErrors({ multidimensionalArray: true });
+        this.cleanFields();
+        return false;
+      }
 
-      } else {
-        this.f.json.setErrors({ jsonInvalido: true });
+      if(typeof arrayJson !== 'object' || arrayJson === null) {
+        this.formControls.json.setErrors({ jsonInvalido: true });
+        this.cleanFields();
+        return false;
+      }
+
+      arrayJson.forEach((row: any) => {
+        const values = Object.values(row);
+        values.forEach((value: any) => {
+          if(typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
+            primitiveTypeError = true;
+          }
+        })
+      });
+
+      if(primitiveTypeError) {
+        this.formControls.json.setErrors({ primitiveTypeError: true });
+        this.cleanFields();
         return false;
       }
 
     } catch(error) {
-      this.f.json.setErrors({ jsonInvalido: true });
+      this.formControls.json.setErrors({ jsonInvalido: true });
+      this.cleanFields();
       return false;
     }
+
+    return true;
   }
 
   public cssValidator(fieldForm: FormControl): boolean {
     return !!fieldForm.errors && fieldForm.touched;
   }
 
+  private cleanFields(): void {
+    this.csvObj = { headers: [], body: [] };
+    this.csvTextArea = '';
+  }
+
   public resetForm(): void {
+    this.cleanFields();
     this.form.reset();
   }
 }
